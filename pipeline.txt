@@ -14,6 +14,15 @@ pipeline {
         ZIP_FILE_PATH = 'path_to_your_zip_file'
         APP_SERVICE_PLAN = 'ASP-jenkinstest'
     }
+    stages {
+        stage('Fetch from SCM') {
+            steps {
+                script {
+                    // Checkout the source code from SCM
+                    git 'https://github.com/karmakarpartho22/test1.git'
+                }
+            }
+        }
 
     stages {
         stage('Build') {
