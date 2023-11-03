@@ -1,0 +1,83 @@
+pipeline {
+    agent any
+
+    environment {
+        AZURE_CREDENTIALS = credentials('bdb05320-48f0-49c1-a109-26f74dfdfdab')
+        RESOURCE_GROUP_DEV = 'ASP-jenkinstest-test'
+        RESOURCE_GROUP_TST = 'ASP-jenkinstest-test'
+        RESOURCE_GROUP_PRD1 = 'ASP-jenkinstest-test'
+        RESOURCE_GROUP_PRD2 = 'ASP-jenkinstest-test'
+        WEB_APP_NAME_DEV = 'jenkinstest-webapp'
+        WEB_APP_NAME_TST = 'jenkinstest-webapp'
+        WEB_APP_NAME_PRD1 = 'jenkinstest-webapp'
+        WEB_APP_NAME_PRD2 = 'jenkinstest-webapp'
+        ZIP_FILE_PATH = 'path_to_your_zip_file'
+        APP_SERVICE_PLAN = 'ASP-jenkinstest'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                bat '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\MSBuild\\Current\\Bin\\msbuild.exe" your_solution_file.sln /p:Configuration=Release'
+            }
+        }
+
+        stage('Deploy to Development') {
+            steps {
+                script {
+                    azureWebAppDeploy webAppKind: 'webapp', resourceGroup: "${RESOURCE_GROUP_DEV}",
+                                      appName: "${WEB_APP_NAME_DEV}", publishProfile: 'your_publish_profile_dev',
+                                      filePath: "${ZIP_FILE_PATH}", appServicePlan: "${APP_SERVICE_PLAN}",
+                                      azureCredentialsId: "${AZURE_CREDENTIALS}"
+                }
+            }
+        }
+
+        stage('Deploy to Testing') {
+            steps {
+                script {
+                    azureWebAppDeploy webAppKind: 'webapp', resourceGroup: "${RESOURCE_GROUP_TST}",
+                                      appName: "${WEB_APP_NAME_TST}", publishProfile: 'your_publish_profile_tst',
+                                      filePath: "${ZIP_FILE_PATH}", appServicePlan: "${APP_SERVICE_PLAN}",
+                                      azureCredentialsId: "${AZURE_CREDENTIALS}"
+                }
+            }
+        }
+		stage('Input for Production Deployment') {
+            steps {
+                input message: 'Deploy to Production?', ok: 'Deploy'
+            }
+        }
+        stage('Deploy to Production 1') {
+            when {
+                expression {
+                    currentBuild.result == 'SUCCESS'
+                }
+            }
+            steps {
+                script {
+                    azureWebAppDeploy webAppKind: 'webapp', resourceGroup: "${RESOURCE_GROUP_PRD1}",
+                                      appName: "${WEB_APP_NAME_PRD1}", publishProfile: 'your_publish_profile_prd1',
+                                      filePath: "${ZIP_FILE_PATH}", appServicePlan: "${APP_SERVICE_PLAN}",
+                                      azureCredentialsId: "${AZURE_CREDENTIALS}"
+                }
+            }
+        }
+
+        stage('Deploy to Production 2') {
+            when {
+                expression {
+                    currentBuild.result == 'SUCCESS'
+                }
+            }
+            steps {
+                script {
+                    azureWebAppDeploy webAppKind: 'webapp', resourceGroup: "${RESOURCE_GROUP_PRD2}",
+                                      appName: "${WEB_APP_NAME_PRD2}", publishProfile: 'your_publish_profile_prd2',
+                                      filePath: "${ZIP_FILE_PATH}", appServicePlan: "${APP_SERVICE_PLAN}",
+                                      azureCredentialsId: "${AZURE_CREDENTIALS}"
+                }
+            }
+        }
+    }
+}
